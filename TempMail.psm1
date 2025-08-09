@@ -15,9 +15,13 @@
     A PSCustomObject containing the WebRequestSession, the email address, and the creation timestamp of the email address. Returns $null on failure.
 #>
 function New-GuerrillaMailSession {
+    [CmdletBinding()]
+    Param()
+
     $session = New-Object Microsoft.PowerShell.Commands.WebRequestSession
     $url = "https://api.guerrillamail.com/ajax.php?f=get_email_address&ip=127.0.0.1&agent=Mozilla_foo_bar"
     try {
+        Write-Verbose "Creating new session and requesting initial email address from $url"
         $resp = Invoke-WebRequest -Uri $url -Method Get -WebSession $session -ErrorAction Stop
         $email = ($resp.Content | ConvertFrom-Json)
 
@@ -68,10 +72,13 @@ function Get-MailAddress{
     The API response object on success. Returns $null on failure.
 #>
 function Set-MailUser{
+    [CmdletBinding()]
     Param(
        [Parameter(Mandatory=$true)]
+       [ValidateNotNull()]
        [PSCustomObject]$GuerrillaSession,
        [Parameter(Mandatory=$true)]
+       [ValidateNotNullOrEmpty()]
        [string]$user,
        [Parameter(Mandatory=$true)]
        [ValidateSet("sharklasers.com","guerrillamail.com","guerrillamail.org","guerrillamail.net","grr.la")]
@@ -79,6 +86,7 @@ function Set-MailUser{
     ) #end param
     $url = "https://api.guerrillamail.com/ajax.php?f=set_email_user&email_user="+$user+"&domain="+$domain+"&lang=en&ip=127.0.0.1&agent=Mozilla_foo_bar"
     try {
+        Write-Verbose "Setting email user to '$($user)@$($domain)' at $url"
         $resp = Invoke-WebRequest -Uri $url -Method Get -WebSession $GuerrillaSession.Session -ErrorAction Stop | ConvertFrom-Json
         $GuerrillaSession.Email = $resp.email_addr
         $GuerrillaSession.EmailTimestamp = $resp.email_timestamp
@@ -114,13 +122,16 @@ function Set-MailUser{
     An object containing the list of emails and other inbox metadata. Returns $null on failure.
 #>
 function Get-Mail{
+    [CmdletBinding()]
     Param(
        [Parameter(Mandatory=$true)]
+       [ValidateNotNull()]
        [PSCustomObject]$GuerrillaSession,
        [Int]$seq_no = 0
     ) #end param
     $url_check = "https://api.guerrillamail.com/ajax.php?f=check_email&seq="+$seq_no+"&ip=127.0.0.1&agent=Mozilla_foo_bar"
     try {
+        Write-Verbose "Checking for mail at $url_check"
         $obj_checkmail = Invoke-RestMethod $url_check -Method Get -WebSession $GuerrillaSession.Session -ErrorAction Stop
         return $obj_checkmail
     }
@@ -153,14 +164,18 @@ function Get-Mail{
     An object containing the full details of the specified email. Returns $null on failure.
 #>
 function Get-MailContent{
+    [CmdletBinding()]
     Param(
        [Parameter(Mandatory=$true)]
+       [ValidateNotNull()]
        [PSCustomObject]$GuerrillaSession,
-       [Parameter(Mandatory=$true)]
+       [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
+       [ValidateNotNullOrEmpty()]
        [string]$mail_id
     ) #end param
     $url_fetch = "https://api.guerrillamail.com/ajax.php?f=fetch_email&email_id="+$mail_id+"&ip=127.0.0.1&agent=Mozilla_foo_bar"
     try {
+        Write-Verbose "Fetching content for mail_id '$($mail_id)' from $url_fetch"
         $obj_fetchmail = Invoke-RestMethod $url_fetch -Method Get -WebSession $GuerrillaSession.Session -ErrorAction Stop
         return $obj_fetchmail
     }
@@ -196,14 +211,17 @@ function Get-MailContent{
     An array of email objects. Returns $null on failure.
 #>
 function Get-MailList{
+    [CmdletBinding()]
     Param(
        [Parameter(Mandatory=$true)]
+       [ValidateNotNull()]
        [PSCustomObject]$GuerrillaSession,
        [Int]$offset = 0,
        [Int]$seq_no = 0
     ) #end param
     $url_check = "https://api.guerrillamail.com/ajax.php?f=get_email_list&seq="+$seq_no+"&offset="+$offset+"&ip=127.0.0.1&agent=Mozilla_foo_bar"
     try {
+        Write-Verbose "Getting mail list with offset '$($offset)' from $url_check"
         $obj_checkmail = Invoke-RestMethod $url_check -Method Get -WebSession $GuerrillaSession.Session -ErrorAction Stop
         return $obj_checkmail.list
     }
@@ -239,10 +257,13 @@ function Get-MailList{
     An array of email objects found in the new inbox.
 #>
 function Get-MailFor{
+    [CmdletBinding()]
     Param(
        [Parameter(Mandatory=$true)]
+       [ValidateNotNull()]
        [PSCustomObject]$GuerrillaSession,
        [Parameter(Mandatory=$true)]
+       [ValidateNotNullOrEmpty()]
        [string]$user,
        [Parameter(Mandatory=$true)]
        [ValidateSet("sharklasers.com","guerrillamail.com","guerrillamail.org","guerrillamail.net","grr.la")]
